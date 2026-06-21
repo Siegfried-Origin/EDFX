@@ -1,4 +1,4 @@
-# ED Screenshot
+# ED HDR Screenshot
 
 This repository is a fork of 3Dmigoto specifically designed for Elite Dangerous.
 
@@ -25,8 +25,8 @@ Although the tool can run without EDHM, installing EDHM is strongly recommended 
 2. The installation instructions below assume that EDHM is already installed.
 
 ## Installation
-
-1. Replace the `d3d11.dll` file in your Elite Dangerous installation directory.
+1. To get the last release, go to https://github.com/Siegfried-Origin/ED-HDR-Screenshot/releases/latest and download the ZIP file
+2. Replace the `d3d11.dll` file in your Elite Dangerous installation directory.
 
    For Steam installations, the default location is:
 
@@ -34,14 +34,14 @@ Although the tool can run without EDHM, installing EDHM is strongly recommended 
    C:\Program Files (x86)\Steam\steamapps\common\Elite Dangerous\Products\elite-dangerous-odyssey-64
    ```
 
-2. Next to the DLL, in the `EDHM-ini\3rdPartyMods` folder, create an `.ini` file (for example `EDScreenshot.ini`) with the following content:
+3. Next to the DLL, in the `EDHM-ini\3rdPartyMods` folder, create an `.ini` file (for example `EDScreenshot.ini`) with the following content:
 
    ```ini
    [EDScreenshot]
    screenshot = no_modifiers VK_F12
    ```
 
-3. Launch the game. Press **F12** to capture an HDR screenshot. The generated files will be located in:
+4. Launch the game. Press **F12** to capture an HDR screenshot. The generated files will be located in:
 
    ```
    Pictures\ED Screenshot
