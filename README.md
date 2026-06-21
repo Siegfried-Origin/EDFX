@@ -25,7 +25,7 @@ Although the tool can run without EDHM, installing EDHM is strongly recommended 
 2. The installation instructions below assume that EDHM is already installed.
 
 ## Installation
-1. To get the last release, go to https://github.com/Siegfried-Origin/ED-HDR-Screenshot/releases/latest and download the ZIP file
+1. Get the latest release: https://github.com/Siegfried-Origin/ED-HDR-Screenshot/releases/latest and download the ZIP file
 2. Replace the `d3d11.dll` file in your Elite Dangerous installation directory.
 
    For Steam installations, the default location is:
