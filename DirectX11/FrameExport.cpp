@@ -14,7 +14,7 @@
 #undef max
 #include <tinyexr.h>
 #include <tiffio.h>
-
+#include <thread>
 
 float FrameExport::DecodeR11G11B10Component(
     uint32_t mantissa,
@@ -65,87 +65,17 @@ void FrameExport::DecodeR11G11B10Float(
 }
 
 
-bool FrameExport::SaveR11G11B10TextureAsEXR(
-    ID3D11Device* device,
-    ID3D11DeviceContext* context,
-    ID3D11Texture2D* srcTex,
-    const char* filename)
+struct EXRJob
 {
-    D3D11_TEXTURE2D_DESC desc;
-    srcTex->GetDesc(&desc);
-
-    if (desc.Format != DXGI_FORMAT_R11G11B10_FLOAT)
-        return false;
-
-    D3D11_TEXTURE2D_DESC stagingDesc = desc;
-    stagingDesc.BindFlags = 0;
-    stagingDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-    stagingDesc.Usage = D3D11_USAGE_STAGING;
-    stagingDesc.MiscFlags = 0;
-
-    ID3D11Texture2D* staging = nullptr;
-
-    HRESULT hr = device->CreateTexture2D(
-        &stagingDesc,
-        nullptr,
-        &staging);
-
-    if (FAILED(hr))
-        return false;
-
-    context->CopyResource(staging, srcTex);
-
-    D3D11_MAPPED_SUBRESOURCE mapped;
-
-    hr = context->Map(
-        staging,
-        0,
-        D3D11_MAP_READ,
-        0,
-        &mapped);
-
-    if (FAILED(hr))
-    {
-        staging->Release();
-        return false;
-    }
-
-    const int width = (int)desc.Width;
-    const int height = (int)desc.Height;
-
+    std::string filename;
+    int width;
+    int height;
     std::vector<float> images[3];
+};
 
-    images[0].resize(width * height);
-    images[1].resize(width * height);
-    images[2].resize(width * height);
 
-    for (int y = 0; y < height; y++)
-    {
-        const uint32_t* row =
-            (const uint32_t*)
-            ((const uint8_t*)mapped.pData +
-                y * mapped.RowPitch);
-
-        for (int x = 0; x < width; x++)
-        {
-            float r, g, b;
-
-            DecodeR11G11B10Float(
-                row[x],
-                r,
-                g,
-                b);
-
-            int idx = y * width + x;
-
-            images[0][idx] = b;
-            images[1][idx] = g;
-            images[2][idx] = r;
-        }
-    }
-
-    context->Unmap(staging, 0);
-    staging->Release();
+static void WriteEXRJob(std::shared_ptr<EXRJob> job)
+{
 
     EXRHeader header;
     InitEXRHeader(&header);
@@ -156,13 +86,13 @@ bool FrameExport::SaveR11G11B10TextureAsEXR(
     image.num_channels = 3;
 
     float* image_ptr[3];
-    image_ptr[0] = images[0].data(); // B
-    image_ptr[1] = images[1].data(); // G
-    image_ptr[2] = images[2].data(); // R
+    image_ptr[0] = job->images[0].data(); // B
+    image_ptr[1] = job->images[1].data(); // G
+    image_ptr[2] = job->images[2].data(); // R
 
     image.images = (unsigned char**)image_ptr;
-    image.width = width;
-    image.height = height;
+    image.width  = job->width;
+    image.height = job->height;
 
     header.num_channels = 3;
 
@@ -191,26 +121,133 @@ bool FrameExport::SaveR11G11B10TextureAsEXR(
     int ret = SaveEXRImageToFile(
         &image,
         &header,
-        filename,
+        job->filename.c_str(),
         &err);
 
     free(header.channels);
     free(header.pixel_types);
     free(header.requested_pixel_types);
 
-    if (ret != TINYEXR_SUCCESS)
-    {
-        if (err)
-        {
-            //LogInfo("TinyEXR error: %s\n", err);
+    if (ret != TINYEXR_SUCCESS) {
+        if (err) {
             FreeEXRErrorMessage(err);
         }
+    }
+}
+
+
+bool FrameExport::SaveR11G11B10TextureAsEXR(
+    ID3D11Device* device,
+    ID3D11DeviceContext* context,
+    ID3D11Texture2D* srcTex,
+    const char* filename)
+{
+    D3D11_TEXTURE2D_DESC desc;
+    srcTex->GetDesc(&desc);
+
+    if (desc.Format != DXGI_FORMAT_R11G11B10_FLOAT) {
         return false;
     }
+
+    D3D11_TEXTURE2D_DESC stagingDesc = desc;
+    stagingDesc.BindFlags       = 0;
+    stagingDesc.CPUAccessFlags  = D3D11_CPU_ACCESS_READ;
+    stagingDesc.Usage           = D3D11_USAGE_STAGING;
+    stagingDesc.MiscFlags       = 0;
+
+    ID3D11Texture2D* staging = nullptr;
+
+    HRESULT hr = device->CreateTexture2D(
+        &stagingDesc,
+        nullptr,
+        &staging);
+
+    if (FAILED(hr)) {
+        return false;
+    }
+
+    context->CopyResource(staging, srcTex);
+
+    D3D11_MAPPED_SUBRESOURCE mapped;
+    hr = context->Map(staging, 0, D3D11_MAP_READ, 0, &mapped);
+
+    if (FAILED(hr)) {
+        staging->Release();
+        return false;
+    }
+
+    auto job = std::make_shared<EXRJob>();
+
+    job->filename = filename;
+    job->width  = (int)desc.Width;
+    job->height = (int)desc.Height;
+
+    job->images[0].resize(job->width * job->height);
+    job->images[1].resize(job->width * job->height);
+    job->images[2].resize(job->width * job->height);
+
+    for (int y = 0; y < job->height; y++)
+    {
+        const uint32_t* row =
+            (const uint32_t*)
+            ((const uint8_t*)mapped.pData +
+                y * mapped.RowPitch);
+
+        for (int x = 0; x < job->width; x++) {
+            float r, g, b;
+            DecodeR11G11B10Float(row[x], r, g, b);
+
+            const int idx = y * job->width + x;
+            job->images[0][idx] = b;
+            job->images[1][idx] = g;
+            job->images[2][idx] = r;
+        }
+    }
+
+    context->Unmap(staging, 0);
+    staging->Release();
+
+    std::thread([job]() {
+        WriteEXRJob(job);
+    }).detach();
 
     return true;
 }
 
+
+struct TiffJob
+{
+    std::string filename;
+    int width;
+    int height;
+    std::vector<float> image;
+};
+
+static void WriteTIFFJob(std::shared_ptr<TiffJob> job)
+{
+    TIFF* tif = TIFFOpen(job->filename.c_str(), "w");
+
+    if (!tif)
+        return;
+
+    TIFFSetField(tif, TIFFTAG_IMAGEWIDTH, job->width);
+    TIFFSetField(tif, TIFFTAG_IMAGELENGTH, job->height);
+    TIFFSetField(tif, TIFFTAG_SAMPLESPERPIXEL, 3);
+    TIFFSetField(tif, TIFFTAG_BITSPERSAMPLE, 32);
+    TIFFSetField(tif, TIFFTAG_SAMPLEFORMAT, SAMPLEFORMAT_IEEEFP);
+    TIFFSetField(tif, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_RGB);
+    TIFFSetField(tif, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
+    TIFFSetField(tif, TIFFTAG_COMPRESSION, COMPRESSION_ADOBE_DEFLATE);
+    TIFFSetField(tif, TIFFTAG_ROWSPERSTRIP, TIFFDefaultStripSize(tif, 0));
+
+    for (int y = 0; y < job->height; y++) {
+        const float* row = &job->image[y * job->width * 3];
+
+        TIFFWriteScanline(tif, (void*)row, y, 0);
+    }
+
+    TIFFClose(tif);
+}
 
 
 bool FrameExport::SaveR11G11B10TextureAsTIFF(
@@ -239,77 +276,51 @@ bool FrameExport::SaveR11G11B10TextureAsTIFF(
         nullptr,
         &staging);
 
-    if (FAILED(hr))
+    if (FAILED(hr)) {
         return false;
+    }
 
     context->CopyResource(staging, srcTex);
 
     D3D11_MAPPED_SUBRESOURCE mapped;
-
-    hr = context->Map(
-        staging,
-        0,
-        D3D11_MAP_READ,
-        0,
-        &mapped);
+    hr = context->Map(staging, 0, D3D11_MAP_READ, 0, &mapped);
 
     if (FAILED(hr)) {
         staging->Release();
         return false;
     }
 
-    const int width = (int)desc.Width;
-    const int height = (int)desc.Height;
+    auto job = std::make_shared<TiffJob>();
 
-    std::vector<float> image(3 * width * height);
+    job->filename = filename;
+    job->width  = (int)desc.Width;
+    job->height = (int)desc.Height;
 
-    for (int y = 0; y < height; y++) {
+    job->image.resize(3 * job->width * job->height);
+
+    for (int y = 0; y < job->height; y++) {
         const uint32_t* row =
             (const uint32_t*)
             ((const uint8_t*)mapped.pData +
                 y * mapped.RowPitch);
 
-        for (int x = 0; x < width; x++) {
+        for (int x = 0; x < job->width; x++) {
             float r, g, b;
             DecodeR11G11B10Float(row[x], r, g, b);
 
-            int idx = y * width + x;
-
-            image[3 * idx + 0] = r;
-            image[3 * idx + 1] = g;
-            image[3 * idx + 2] = b;
+            const int idx = y * job->width + x;
+            job->image[3 * idx + 0] = r;
+            job->image[3 * idx + 1] = g;
+            job->image[3 * idx + 2] = b;
         }
     }
 
     context->Unmap(staging, 0);
     staging->Release();
 
-    TIFF* tif = TIFFOpen(filename, "w");
-
-    if (!tif)
-        return false;
-
-    TIFFSetField(tif, TIFFTAG_IMAGEWIDTH, width);
-    TIFFSetField(tif, TIFFTAG_IMAGELENGTH, height);
-    TIFFSetField(tif, TIFFTAG_SAMPLESPERPIXEL, 3);
-    TIFFSetField(tif, TIFFTAG_BITSPERSAMPLE, 32);
-    TIFFSetField(tif, TIFFTAG_SAMPLEFORMAT, SAMPLEFORMAT_IEEEFP);
-    TIFFSetField(tif, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_RGB);
-    TIFFSetField(tif, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
-    TIFFSetField(tif, TIFFTAG_COMPRESSION, COMPRESSION_ADOBE_DEFLATE);
-    TIFFSetField(tif, TIFFTAG_ROWSPERSTRIP, TIFFDefaultStripSize(tif, 0));
-
-    for (int y = 0; y < height; y++) {
-        const float* row = &image[3 * y * width];
-
-        if (TIFFWriteScanline(tif, (void*)row, y, 0) < 0) {
-            //LogInfo("TIFF error: %s\n", TIFFErrorExt());
-            TIFFClose(tif);
-            return false;
-        }
-    }
-
-    TIFFClose(tif);
+    std::thread([job]() {
+        WriteTIFFJob(job);
+    }).detach();
 
     return true;
 }
