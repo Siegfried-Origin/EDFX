@@ -11,11 +11,11 @@ https://github.com/bo3b/3Dmigoto/releases
 
 This mod enables HDR screenshot capture in Elite Dangerous.
 
-When you press **F12** (configurable), the tool captures two images from the game's rendering pipeline: a sharp image and a blurred image. Both are saved in **OpenEXR** format, allowing you to adjust exposure, tone mapping, bloom, and other post-processing effects that are normally baked into standard game or Steam screenshots.
+When you press **F12** (configurable), the tool captures two images from the game's rendering pipeline: a sharp image and a blurred image. Both are saved in **OpenEXR** format or 32bit float **TIFF** format, allowing you to adjust exposure, tone mapping, bloom, and other post-processing effects that are normally baked into standard game or Steam screenshots.
 
 The images are saved in the **ED Screenshot** subdirectory of your Pictures folder.
 
-You can edit the resulting EXR files with software such as **GIMP** or **Affinity Photo**.
+You can edit the resulting EXR files with software such as **GIMP** or **Affinity Photo** and TIFF files in **Adobe Lightroom**.
 
 This tool is designed to be compatible with EDHM by replacing the `d3d11.dll` file used by EDHM: https://bluemystical.github.io/edhm-api/
 
@@ -25,27 +25,16 @@ Although the tool can run without EDHM, installing EDHM is strongly recommended 
 2. The installation instructions below assume that EDHM is already installed.
 
 ## Installation
-1. Get the latest release: https://github.com/Siegfried-Origin/ED-HDR-Screenshot/releases/latest and download the ZIP file
-2. Replace the `d3d11.dll` file in your Elite Dangerous installation directory.
+1. Install EDHM: https://bluemystical.github.io/edhm-api/
+2. Get to the latest release: https://github.com/Siegfried-Origin/ED-HDR-Screenshot/releases/latest
+3. Download ED.HDR.Screenshot.v0.1.zip from the list bellow.
+4. Navigate to your Elite Dangerous installation folder (for example: `C:\Program Files (x86)\Steam\steamapps\common\Elite Dangerous\Products\elite-dangerous-odyssey-64`).
+5. Replace the existing `d3d11.dll` with the one included in this ZIP file.
+6. Copy `EDHM-ini\3rdPartyMods\EDScreenshot.ini` from the ZIP file to your `EDHM-ini\3rdPartyMods` folder.
 
-   For Steam installations, the default location is:
+You can now press `F12` to capture an HDR screenshot.
 
-   ```
-   C:\Program Files (x86)\Steam\steamapps\common\Elite Dangerous\Products\elite-dangerous-odyssey-64
-   ```
-
-3. Next to the DLL, in the `EDHM-ini\3rdPartyMods` folder, create an `.ini` file (for example `EDScreenshot.ini`) with the following content:
-
-   ```ini
-   [EDScreenshot]
-   screenshot = no_modifiers VK_F12
-   ```
-
-4. Launch the game. Press **F12** to capture an HDR screenshot. The generated files will be located in:
-
-   ```
-   Pictures\ED Screenshot
-   ```
+The captured images will be saved in the `ED Screenshot` subfolder of your user's `Pictures` folder.
 
 ## Additional Information
 
