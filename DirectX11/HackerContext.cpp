@@ -2693,7 +2693,7 @@ void HackerContext::InitIniParams()
 }
 
 #include <stdexcept>
-#include "EXRExport.h"
+#include "FrameExport.h"
 #include <shlobj.h>
 #include <KnownFolders.h>
 
@@ -2813,7 +2813,7 @@ void HackerContext::SetShaderResources(UINT StartSlot, UINT NumViews,
 					wcstombs(final_path, path, MAX_PATH);
 
 					// TODO: make sure we're in R11G11B10
-					EXRExport::SaveR11G11B10TextureAsEXR(
+					FrameExport::SaveR11G11B10TextureAsEXR(
 						this->mOrigDevice1,
 						this,
 						(ID3D11Texture2D*)resource,

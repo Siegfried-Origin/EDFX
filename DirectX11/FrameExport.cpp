@@ -1,4 +1,4 @@
-#include "EXRExport.h"
+#include "FrameExport.h"
 
 #include <cmath>
 
@@ -15,7 +15,7 @@
 #include <tinyexr.h>
 
 
-float EXRExport::DecodeR11G11B10Component(
+float FrameExport::DecodeR11G11B10Component(
     uint32_t mantissa,
     uint32_t exponent,
     uint32_t mantissaBits)
@@ -43,7 +43,7 @@ float EXRExport::DecodeR11G11B10Component(
 }
 
 
-void EXRExport::DecodeR11G11B10Float(
+void FrameExport::DecodeR11G11B10Float(
     uint32_t packed,
     float& r,
     float& g,
@@ -64,7 +64,7 @@ void EXRExport::DecodeR11G11B10Float(
 }
 
 
-bool EXRExport::SaveR11G11B10TextureAsEXR(
+bool FrameExport::SaveR11G11B10TextureAsEXR(
     ID3D11Device* device,
     ID3D11DeviceContext* context,
     ID3D11Texture2D* srcTex,

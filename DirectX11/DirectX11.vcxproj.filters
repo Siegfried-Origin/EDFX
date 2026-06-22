@@ -30,7 +30,7 @@
     <ClCompile Include="..\ini_parser_lite.cpp" />
     <ClCompile Include="lock.cpp" />
     <ClCompile Include="cursor.cpp" />
-    <ClCompile Include="EXRExport.cpp" />
+    <ClCompile Include="FrameExport.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="d3d11Wrapper.def" />
@@ -65,7 +65,7 @@
     <ClInclude Include="profiling.h" />
     <ClInclude Include="lock.h" />
     <ClInclude Include="cursor.h" />
-    <ClInclude Include="EXRExport.h" />
+    <ClInclude Include="FrameExport.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="DirectX11.rc" />

@@ -13,7 +13,7 @@
 #endif
 
 
-class EXRExport
+class FrameExport
 {
 public:
     static float DecodeR11G11B10Component(uint32_t mantissa, uint32_t exponent, uint32_t mantissaBits);
