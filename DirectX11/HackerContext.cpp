@@ -2778,20 +2778,23 @@ void HackerContext::SetShaderResources(UINT StartSlot, UINT NumViews,
 
 		wchar_t path[MAX_PATH];
 		char final_path[MAX_PATH];
+		
+		// We extract only the sharp image
+		// 0: LUT
+		// 1: sharp
+		// 2: blurred
+		const UINT i = 1;
 
-		for (UINT i = 0; i < NumViews; i++) {
-			ID3D11Resource* resource = nullptr;
-			views[i]->GetResource(&resource);
+		//for (UINT i = 0; i < NumViews; i++) {
+		ID3D11Resource* resource = nullptr;
+		views[i]->GetResource(&resource);
 
-			if (!resource) {
-				continue;
-			}
+		EnterCriticalSectionPretty(&G->mCriticalSection);
+		EnterCriticalSectionPretty(&G->mResourcesLock);
 
+		if (resource) {
 			D3D11_RESOURCE_DIMENSION dim;
 			resource->GetType(&dim);
-
-			EnterCriticalSectionPretty(&G->mCriticalSection);
-			EnterCriticalSectionPretty(&G->mResourcesLock);
 
 			try {
 				const uint32_t hash = G->mResources.at(resource).hash;
@@ -2852,10 +2855,10 @@ void HackerContext::SetShaderResources(UINT StartSlot, UINT NumViews,
 			}
 
 			resource->Release();
-
-			LeaveCriticalSection(&G->mResourcesLock);
-			LeaveCriticalSection(&G->mCriticalSection);
 		}
+
+		LeaveCriticalSection(&G->mResourcesLock);
+		LeaveCriticalSection(&G->mCriticalSection);
 
 		// We're done taking screenshot for this frame
 		mTakeEDScreenshot = false;
