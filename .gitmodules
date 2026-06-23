@@ -4,6 +4,3 @@
 [submodule "ThirdPartyLibs/tinyexr"]
 	path = ThirdPartyLibs/tinyexr
 	url = https://github.com/syoyo/tinyexr.git
-[submodule "ThirdPartyLibs/libtiff/src"]
-	path = ThirdPartyLibs/libtiff/src
-	url = https://gitlab.com/libtiff/libtiff.git
